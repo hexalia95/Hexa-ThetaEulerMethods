@@ -7,7 +7,6 @@ using ThetaEulerMethods;
 
 public class LinearTestEquation    //new file for organised structure
 {
-
     /*
      * Here is the class file for the Linear test equation (LTE)
      * As expected everything here is static because this class isn't really being used to make any actual objects
@@ -43,10 +42,6 @@ public class LinearTestEquation    //new file for organised structure
     //ERROR COMPARE EXCLUSIVE
     static readonly List<double> thetaSpaced = [.. Generate.Consecutive(101, 0.01, 0)];  //Stores [0,0.01,0.02,...,0.99,1]
     static List<double> globalErrors = new(101);                                         //Stores the maximum relative errors for each simulation under the thetas given above
-
-
-
-
 
 
 
@@ -186,8 +181,8 @@ public class LinearTestEquation    //new file for organised structure
 
         /*
          * Spectre.Console has Table functionality!
-         *A table is created to summarise values before creating the iteration
-         *It's basic for now, can stylise it later
+         * A table is created to summarise values before creating the iteration
+         * It's basic for now, can stylise it later
          */
 
         var table = new Table()
@@ -213,7 +208,6 @@ public class LinearTestEquation    //new file for organised structure
         Console.ReadLine();
 
 
-
         //Here the bool of thetaBattle is checked: the ThetaBattle method sets up a loop of LinearIteration calls.
         if (!thetaBattle)
         {
@@ -224,25 +218,21 @@ public class LinearTestEquation    //new file for organised structure
             AnsiConsole.MarkupLine("[green bold] Beginning theta comparison![/]");
             ThetaBattle();
         }
-
-
-
     }
 
 
     private static void LinearIteration()
     {
         /*
+         * Here is where the main simulation loop occurs.
+         * The multiplier [(1+(θλΔt)) / (1-(1-θ)λΔt)] is stored to a variable, then ResetIteration() is called.
+         * What that does is clear out every list and sets the currentX, currentEXact and iterN variables to their defaults.
+         * It's most relevant for the Error Compare option, where this function is called 101 times, and the aforementioned variables need to be reset for each simulation.
          * 
-         * 
-         * 
-         * 
-         * 
-         * 
-         * 
+         * Anyway, the while loop is used to count time, from 0, in increments of Δt, until the Stopping Time is reached.
+         * During each loop, the lists are updated to contain new values at each time step. Then iterN is incremented, allowing for the next currentX and currentEXact to be calculated.
+         * Finally, X_n is multiplied by iterativeMultiplier to obtain X_n+1, and the next currentEXact value is calculated directly.
          */
-
-
 
 
         if (!thetaBattle)
@@ -250,19 +240,17 @@ public class LinearTestEquation    //new file for organised structure
             AnsiConsole.MarkupLine($"[green bold]Beginning Approximation[/], Initial value X_0 = X(0) = 1");
         }
 
-        //this multiplier factor will be a more complex formula in other schemes
-        //
-        //comment: scheme tends to fail miserably if the denominator is very close to 0, mitigated if timestep is small
+
+        //STORE MULTIPLIER
         iterativeMultiplier = (1d + (thetaValue * lambdaValue * timestepValue)) / (1d - ((1d - thetaValue) * lambdaValue * timestepValue));
 
-        //clean up before the iteration begins
+        //RESET ITERATION
         ResetIteration();
 
+        //RUN SIMULATION
         while (iterN * timestepValue <= timeStopPoint)
         {
-
-            //starts by adding the default values to the Lists
-            //the order here adds current values to the lists, then increments the time and gets the new values
+            //UPDATE LISTS
             timeAxis.Add(iterN * timestepValue);
             approxPoints.Add(currentX);
             exactPoints.Add(currentEXact);
@@ -272,6 +260,8 @@ public class LinearTestEquation    //new file for organised structure
             //test point, printing values (explicit with lambda = 1 and timestep = 1 should be a doubler)
             //Console.WriteLine($"at time {iterN * timestepValue}, the approx value of e to the {lambdaValue}t is {currentX} and the true value is {currentEXact}");
 
+
+            //GET NEW APPROX AND EXACT VALUES
             iterN++;
             currentX *= iterativeMultiplier;
             currentEXact = Math.Pow(Math.E, iterN * timestepValue * lambdaValue);
@@ -281,19 +271,17 @@ public class LinearTestEquation    //new file for organised structure
         //Console.WriteLine($"the global error was: {errorValuesAbs.Max()}, and the global relative error was: {errorValuesRel.Max()}");
 
 
-            if (!thetaBattle)
-            {
-                AnsiConsole.MarkupLine("[green bold]DONE![/]");
-                LinearResultPlots();
-            }
-
-
+        //There are 2 methods for plotting results: Error Compare doesn't use LinearResultPlots()
+        if (!thetaBattle)
+        {
+            AnsiConsole.MarkupLine("[green bold]DONE![/]");
+            LinearResultPlots();
+        }
     }
 
 
     private static void ResetIteration()
     {
-        //reset of all values(for the sake of the "error compare" option
         timeAxis.Clear();
         exactPoints.Clear();
         approxPoints.Clear();
@@ -307,9 +295,22 @@ public class LinearTestEquation    //new file for organised structure
 
     private static void LinearResultPlots()
     {
+        /*
+         * ScottPlot is used to generate the plot for the exact and approximated curves on the same graph, time on the x-axis, X(t) on the y-axis.
+         * Another plot is also made - for the graph of relative error against time.
+         * SignalXY plots are much more performant than scatters given there can be many thousands of values in these lists to plot.
+         * 
+         * 
+         * The graphs are a bit basic in appearance for now, but they can be stylised later. For now the axis margins and labels, title, and legend are included.
+         * The title uses a long interpolated string to display the correct information each time.
+         * 
+         * The last part of this method gets the save location for the png files the plots will be stored to.
+         * DetermineSaveLocation gets a user input for folder pathing relative to their Pictures folder, which is then used in the ScottPlot 'SavePng' method to save the plots...
+         * ... as a 1280x720 image in the chosen location.
+         */
 
-        //basic for now, can style later
-        //signal XYs can handle thousands of points while giving me custom spacing
+
+        //CREATE COMPARISON PLOT
         ScottPlot.Plot linearResults = new();
         var exactCurve = linearResults.Add.SignalXY(timeAxis, exactPoints, ScottPlot.Color.FromHex("ff0000"));
         var approxCurve  = linearResults.Add.SignalXY(timeAxis,approxPoints, ScottPlot.Color.FromHex("00ff00"));
@@ -325,14 +326,11 @@ public class LinearTestEquation    //new file for organised structure
         linearResults.XLabel("t");
         linearResults.YLabel("X");
         linearResults.Title($"LTE {(thetaValue == 0.5 ? "Trapezium" : eulerType)} FD Scheme {((thetaValue != 0d & thetaValue != 0.5d & thetaValue !=  1d) ? "(Theta = " + thetaValue + ")" : "")}in timesteps of {timestepValue}: dX/dt = {((lambdaValue == 1d) ? "" : lambdaValue)}X | X(0) = 1");
-        //interpolated title displays either Explicit, Implicit, Trapezium, or Theta; if theta, the thetaValue is also given
-
 
         linearResults.ShowLegend();
         
 
-
-        //the error plot is separate for now (multiplot later?)
+        //CREATE ERROR PLOT
         ScottPlot.Plot linearErrors = new();
         var relErrorCurve = linearErrors.Add.SignalXY(timeAxis, errorValuesRel, ScottPlot.Color.FromHex("0000ff"));
 
@@ -346,30 +344,34 @@ public class LinearTestEquation    //new file for organised structure
 
 
         
+        //SAVE THE IMAGES
         string finalPath = DetermineSaveLocation();
 
-        //decided against prompting for custom image names for now
+        //Custom image names in the future maybe
         string finalResultsPath = Path.Combine(finalPath, "linearResultsPLOT.png");
         string finalErrorPath = Path.Combine(finalPath, "linearErrorPLOT.png");
 
 
         linearResults.SavePng(finalResultsPath, 1280, 720);
         linearErrors.SavePng(finalErrorPath, 1280, 720);
-
     }
 
 
-    protected static string DetermineSaveLocation()    //now it's own function to save on linecount
+    protected static string DetermineSaveLocation() 
     {
+        /*
+         * This methods appends a user input to the environment's special Pictures folder, and returns the result.
+         * Whitespace is removed to prevent issues when using Path.Combine()
+         * The directory is then created, if it didn'y already exist.
+         */
+
         var pictureFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-        //the save location will be relative to the device's Pictures folder
 
         var savePrompt = new TextPrompt<string>(@"Where should the plot data be saved in the Pictures folder? Example: 'Extras\Plots', or leave empty").AllowEmpty();
         var saveLocation = AnsiConsole.Prompt(savePrompt).Trim();
 
         string finalPath = Path.Combine(pictureFolder, saveLocation);
 
-        //create the save folder(s) if they didn't exist before
         if (!Path.Exists(finalPath))
         {
             Directory.CreateDirectory(finalPath);
@@ -380,23 +382,31 @@ public class LinearTestEquation    //new file for organised structure
 
     private static void ThetaBattle()
     {
+        /*
+         * Here's the method that runs the Error Compare Option. The for loop sets each theta value in hundredths from 0 to 1 and...
+         * ...calls LinearIteration for each one. Recall that the lambda, timestep and stopping point were all already determined during LinearAnalysis().
+         * 
+         * The globalErrors List sees use here, to store the maximum value in errorValuesRel for each simulation; this is what will be compared.
+         * 
+         * The final part of this method declares the title for the upcoming plot method, exclusive to Error Compare.
+         * This allows for other equation scheme to use that method without needing to write out very similar code.
+         */
+
+        //RUN ERROR COMPARE
         for (int i = 0; i <= 100; i++)
         {
-            //errorValuesRel.Clear();
-
             thetaValue = i / 100d;  
-            LinearIteration();            //set each theta, then perform the full iteration
+            LinearIteration();
 
-            globalErrors.Add(errorValuesRel.Max());      // append the corresponding global error each time
+            globalErrors.Add(errorValuesRel.Max());
         }
 
         //testpoint, have values been collected correctly?
-        foreach (double value in thetaSpaced)
+        /*foreach (double value in thetaSpaced)
         {
             Console.WriteLine($"at theta = {value}, the global error was {globalErrors[thetaSpaced.IndexOf(value)]}");
-        }
+        }*/
 
-        //pass specific title to make the plotting method generic for use by any equation scheme
         string titlestring = $"Error Comparison in LTE FD Schemes of differing theta values for equation (in timesteps of {timestepValue}): dX/dt = {((lambdaValue == 1d) ? "" : lambdaValue)}X | X(0) = 1";
         ThetaBattlePlots(titlestring);
     }
@@ -404,7 +414,15 @@ public class LinearTestEquation    //new file for organised structure
 
     protected static void ThetaBattlePlots(string title)
     {
-        //basic for now, can style later
+        /*
+         * This method is similar to LinearResultPlots(). Just as in there, the plot here is basic and can be stylised later.
+         * Again the plot is a SignalXY for similar reasons.
+         * 
+         * The plot is also saved in the same way as the other method.
+         */
+        
+
+        //CREATE THETA COMPARISON PLOT
         ScottPlot.Plot thetaPlot = new();
         var thetaCurve = thetaPlot.Add.SignalXY(thetaSpaced, globalErrors, ScottPlot.Color.FromHex("ffb700"));
         thetaCurve.LineWidth = 5;
@@ -416,12 +434,13 @@ public class LinearTestEquation    //new file for organised structure
         thetaPlot.Axes.SetLimitsX(0, 1);
         thetaPlot.Axes.SetLimitsY(0, globalErrors.Max());
 
+
+        //SAVE THE PLOT
         string finalPath = DetermineSaveLocation();
         string finalThetaBattlePath = Path.Combine(finalPath, "errorComparisonPLOT.png");
 
         thetaPlot.SavePng(finalThetaBattlePath, 1280, 720);
     }
-
 
 
     public LinearTestEquation()
