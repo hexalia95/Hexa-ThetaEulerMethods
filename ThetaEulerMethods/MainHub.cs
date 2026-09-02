@@ -8,7 +8,6 @@ namespace ThetaEulerMethods
 
         static void Main(string[] args)
         {
-
             /*
              * Welcome to my Numerical Method simulation!
              * It's based on a simple example from my PDE course, the Euler iteration schemes on the Linear test equation (dX/dt = λx, with X(0) = 1)
@@ -35,7 +34,6 @@ namespace ThetaEulerMethods
              */
 
 
-
             /*
              * Spectre.Console is used for easy console menu creation, simply needing to provide a title and listing of choices of which the chosen one is stored to the variable.
              * I can then use a switch statement to direct the program to the appropriate class to perform the relevant simulation based on the chosen option string.
@@ -49,7 +47,6 @@ namespace ThetaEulerMethods
                     .AddChoices("Linear","X Squared"));
 
             AnsiConsole.MarkupLine($"You picked [blue]{testEquation}[/]");
-
 
             /*
              * Spectre.Console also adds markup functionality for text; nothing major, but it does break up the usual white monotony which can improve readability.
@@ -76,13 +73,7 @@ namespace ThetaEulerMethods
                     break;
             }
 
-
             Console.ReadLine();
-
-
-
-
-   
         }
     }
 }
