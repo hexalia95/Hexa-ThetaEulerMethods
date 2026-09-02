@@ -45,9 +45,8 @@ public class LinearTestEquation    //new file for organised structure
 
 
 
-    public static void LinearAnalysis()     //initialize the values and scheme that will be used for the iteration
+    public static void LinearAnalysis()
     {
-
         /*
          * This is where the user is first sent to after selecting a function.
          * The program will prompt the user for θ (or to error compare), λ, Δt and a stopping time, and summarise these choices in a table.
