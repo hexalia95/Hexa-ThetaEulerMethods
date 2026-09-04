@@ -4,51 +4,64 @@ using Spectre.Console;
 using ThetaEulerMethods;
 
 
-//highly experimental, only implementation will see if this is a viable scheme for XSquared
 public class XSquaredTestEquation : LinearTestEquation
 {
-    // dX/dt = lambda*(X^2), X(1) = -1/lambda
-    // true solution: X(t) = -1/(lambda*t) 
-    // note: X_n now refers to X(1 + n*timestep)
+    /*
+    * Here is the class file for the X Squared test equation (xSTE)
+    * For the most part, this is structured very similarly to the LTE class file, so the more detailed documentation will be in there.
+    * This class inherits the LTE class for the sake of the DetermineSaveLocation() and ThetaBattlePlots() methods.
+    * 
+    * The true solution for the xSTE "dX/dt = λx^2, with X(1) = -1/λ" is X(t) = -1/λt
+    * The approximation recurrence is given by either: X_n+1 = X_n + b * (X_n)^2 | in the Explicit scheme...
+    * ...or by X_n+1 = 1 - sqrt[1 - (4 * a * (X_n + b * (X_n)^2))] / 2a | for any other theta value. 
+    * a = (1-θ)λΔt and b = θλΔt
+    * 
+    * For this function, the user can input a start time (>0) as opposed to the LTE that always starts at 0. This has an impact on the valid range of Δt.
+    * In comments, i will refer to this start time as "C".
+    */
 
-    static string? eulerType;
-    static bool thetaBattle = false;
+    //MAIN VARIABLES
+    static string? eulerType;                       //Stores the chosen Euler option (will be used when titling the plots)
+    static bool thetaBattle = false;                //Stores whether an Error Compare should be performed
 
-    static double thetaValue;                       //these will be used to create the iterative formula later on
-    static double lambdaValue;
-    static double timestepValue;
-    static double timeStopPoint;
+    static double thetaValue;                       //Stores the theta: it must be inputted manually if Explicit (=1) or Implicit (=0) weren't chosen
+    static double lambdaValue;                      //Stores the coefficient: must be nonzero
+    static double timestepValue;                    //Stores Δt, will affect the number of iterations that need to be computed
+    static double timeStopPoint;                    //Stores the chosen stop time (eg. after 10 seconds). Note that time based variables are always in seconds.
 
-    static List<double> timeAxis = new List<double>();              //these lists will contain the sets of points that will be plotted to a graph 
-    static List<double> approxPoints = new List<double>();          //this will store the values from the iterative process (X_n)
-    static List<double> exactPoints = new List<double>();           //this will contain the exact values (e^(m*n*timestep))
-    static List<double> errorValuesAbs = new List<double>();        //this contains the absolute errors between each pair
-    static List<double> errorValuesRel = new List<double>();        //this contains the relative errors between each pair
+    static List<double> timeAxis = [];              //List of time points (our eventual x-axis)
+    static List<double> approxPoints = [];          //Stores the values from the iterative process (X_n) (our y-axis)
+    static List<double> exactPoints = [];           //Stores the exact values of the function e^(λnΔt)
+    static List<double> errorValuesAbs = [];        //Stores the absolute errors between each pair (exact and approx values)
+    static List<double> errorValuesRel = [];        //Stores the relative errors between each pair
 
-
-    static int iterN = 0;                           //inital values for the iteration
-    static double currentX = 1d;
-    static double currentEXact = 1d;
-
-
-    //THETA COMPARISON EXCLUSIVE
-    static readonly List<double> thetaSpaced = [.. Generate.Consecutive(101, 0.01, 0)];
-    static List<double> globalErrors = new(101);
-
-
-    private static double a; 
-    private static double b;
-
-    protected static double customStart = 1d;
-    protected static double customStartIndex = 1d;
+    static int iterN = 0;                           //Indexer to control our iteration
+    static double currentX = 1d;                    //currentX is X_n in our approximation
+    static double currentEXact = 1d;                //currentEXact is the true value of -1/λt
 
 
-	public static void XSquaredAnalysis()
-     // very similar to LinearAnalysis with key differences; see LinearTestEqn for more comments
+    //ERROR COMPARE EXCLUSIVE
+    static readonly List<double> thetaSpaced = [.. Generate.Consecutive(101, 0.01, 0)];  //Stores [0,0.01,0.02,...,0.99,1]
+    static List<double> globalErrors = new(101);                                         //Stores the maximum relative errors for each simulation under the thetas given above
+
+
+
+    private static double a;                        //Stores the value of (1-θ)λΔt which will be used for the iterative recurrence formula
+    private static double b;                        //Stores the value of θλΔt for the same reason as above
+
+    protected static double customStart = 1d;       //Stores the user-chosen starting point for the simulation
+    protected static double customStartIndex = 1d;  //This stores the value of customStart + (iterN * Δt), and will be used to produce points in the simulation up to the stopping time.
+
+
+    public static void XSquaredAnalysis()
 	{
+        /*
+         * See LinearAnalysis() for more details!
+         */
 
         Console.WriteLine("Welcome to the X-Squared Test Equation Space");
 
+        //GET SCHEME TYPE
         eulerType = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
                     .Title("Which scheme should be used?")                      
@@ -56,7 +69,6 @@ public class XSquaredTestEquation : LinearTestEquation
 
         AnsiConsole.MarkupLine($"You picked [blue]{eulerType}[/]");             //f(X,t) is what dX/dt is equal to (mX^2 here) (m is lambda)
 
-        // call for a custom theta if that was the chosen option, set the theta values otherwise
         switch (eulerType)
         {
             case "Explicit":
@@ -68,7 +80,8 @@ public class XSquaredTestEquation : LinearTestEquation
                 break;
 
             case "Theta":
-                var thetaPrompt = new TextPrompt<double>("What will be the [blue]theta value[/] (use 0.5 for trapezium)?")    //validate a custom theta input, disallows picking exactly 0 or 1
+                //THETA PROMPT
+                var thetaPrompt = new TextPrompt<double>("What will be the [blue]theta value[/] (use 0.5 for trapezium)?")
                     .Validate(input =>
                     {
                         if (input <= 0 || input >= 1)
@@ -86,7 +99,6 @@ public class XSquaredTestEquation : LinearTestEquation
 
 
             case "Error Compare":
-                //set a flag to perform the theta-error comparison experiement with the given variables instead
                 thetaBattle = true;
                 break;
 
@@ -94,7 +106,7 @@ public class XSquaredTestEquation : LinearTestEquation
                 break;
 
         }
-        //get the coefficient
+        //LAMBDA PROMPT
         var lambdaPrompt = new TextPrompt<double>("What will be the [blue]co-efficient[/]? [green](dX/dt = mX^2)[/]")
             .Validate(input =>
             {
@@ -112,8 +124,7 @@ public class XSquaredTestEquation : LinearTestEquation
 
 
 
-        // get the starting time, closer to 0 can be open to more variance
-        // explicit incurs a restriction on timestep
+        // START TIME PROMPT
         var startTimePrompt = new TextPrompt<double>("When should the [blue]simulation[/] begin? [green](Time in seconds, positive))[/]")
             .Validate(input =>
             {
@@ -129,9 +140,12 @@ public class XSquaredTestEquation : LinearTestEquation
         AnsiConsole.MarkupLine($"You chose a start time of [blue]{customStart}[/]");
 
 
-        // get the timestep value (density of approximated points)
-        // X_n must lie in a certain range (between 0 and -1/(lambda*timestep)) for the sign of the true solution to be respected
-        //finally found proper condition for stability in schemes of theta nonzero (timestep must simply not exceed the starting time divided by theta)
+        /*
+         * TIMESTEP PROMPT
+         * When theta is 0, there is no limitation on Δt (apart from it being greater than 0 of course).
+         * For all other theta, Δt < C/θ, where C is the start time.
+         * Interestingly that bound is independent of λ.
+         */
         var timestepPrompt = new TextPrompt<double>("What will be the [blue]time step[/]? [green](X_n approximates X(1 + (n * timestep)))[/]")
             .Validate(input =>
             {
@@ -153,8 +167,7 @@ public class XSquaredTestEquation : LinearTestEquation
 
 
 
-        // get the "stopping time", this is the amount of time divided by the timestep, to get the number of iterates that will be made
-        // so the iteration is stopped once n*timestep exceeds timeStopPoint
+        // STOPTIME PROMPT
         var stopPointPrompt = new TextPrompt<double>("When should the [blue]simulation[/] end? [green](Time in seconds))[/]")
             .Validate(input =>
             {
@@ -175,8 +188,7 @@ public class XSquaredTestEquation : LinearTestEquation
         AnsiConsole.MarkupLine($"You chose a stop time of [blue]{timeStopPoint}[/]");
 
 
-        //table to summarise values before creating the iteration
-        //basic for now, can stylise it later
+        //TABLE
         var table = new Table()
             .BorderColor(Spectre.Console.Color.Orange1)
             .Border(TableBorder.DoubleEdge)
@@ -218,29 +230,29 @@ public class XSquaredTestEquation : LinearTestEquation
 
     private static void XSquaredIteration()
     {
+        /*
+         * Similar to LinearIteration(), a while loop is used, but rather than just a multiplier applied to currentX...
+         * ... a method is called to apply currentX into the relevant formula.
+         * 
+         * See LinearIteration() for more details.
+         */
+
         if (!thetaBattle)
         {
             AnsiConsole.MarkupLine($"[green bold]Beginning Approximation[/], Initial value X_0 = X({customStart}) = {(lambdaValue > 0 ? -1d/(lambdaValue*customStart) : 1d / (lambdaValue * customStart))}");
         }
 
-
-        //major difference to linear here, we have a proper formula instead of a basic multiplier iteration
-        //first, we initialize "a" and "b", they will keep expressions clean
-
+        // a and b can now be set
         a = (1d - thetaValue) * (lambdaValue) * (timestepValue);
         b = (thetaValue) * (lambdaValue) * (timestepValue);
 
-        //making the time expression easier to use; will need to be refreshed when iterN changes
+        //compute the starting value of customStartIndex
         customStartIndex = customStart + (iterN * timestepValue);
 
-        //clean up before the iteration begins (will set XSquared exclusive values here)
         ResetIterationXSquared();
 
         while (customStartIndex <= timeStopPoint)
         {
-
-            //starts by adding the default values to the Lists
-            //the order here adds current values to the lists, then increments the time and gets the new values
             timeAxis.Add(customStartIndex);
             approxPoints.Add(currentX);
             exactPoints.Add(currentEXact);
@@ -250,27 +262,25 @@ public class XSquaredTestEquation : LinearTestEquation
             //test point, printing values (explicit with lambda = 1 and timestep = 1 should be a doubler)
             //Console.WriteLine($"at time {customStartIndex}, the approx value of -1 over {lambdaValue}t is {currentX} and the true value is {currentEXact}");
 
+            //Update customStartIndex value when incrementing iterN
             iterN++; customStartIndex = customStart + (iterN * timestepValue);
+
+            //A ternary operator is used to direct to the correct formula
             currentX = thetaValue == 1d ? ExplicitFormula(currentX) : OtherFormula(currentX);
             currentEXact = -1d / (lambdaValue * (customStartIndex));
         }
 
         //testpoint, print the global (maximum error)
-        Console.WriteLine($"the global error was: {errorValuesAbs.Max()}, and the global relative error was: {errorValuesRel.Max()}");
-
-
+        //Console.WriteLine($"the global error was: {errorValuesAbs.Max()}, and the global relative error was: {errorValuesRel.Max()}");
 
         if (!thetaBattle)
         {
             AnsiConsole.MarkupLine("[green bold]DONE![/]");
             XSquaredResultPlots();
         }
-
-
     }
 
 
-    //need 2 different formulas: the one for all other theta values is based on the quadratic formula
     private static double ExplicitFormula(double xN)
     {
         return xN + (b * Math.Pow(xN, 2d));
@@ -278,24 +288,11 @@ public class XSquaredTestEquation : LinearTestEquation
 
     private static double OtherFormula(double xN)
     {
-        double result;
         double determinant = 1d - (4d * a * (xN + (b * Math.Pow(xN,2d))));
 
-        //if we end up outside the valid range, zero the value
         double rootDet = Math.Sqrt(determinant);
 
-        if (rootDet != 0)
-        {
-            //the root we choose is based on lambda: positive means negative X values, and vice versa
-            //or not
-            result = (1d - rootDet) / (2d * a);
-        }
-        else
-        {
-            return result = 0d;
-        }
-
-        return result;
+        return (1d - rootDet) / (2d * a);
     }
 
 
@@ -314,13 +311,14 @@ public class XSquaredTestEquation : LinearTestEquation
     }
 
 
-
     private static void XSquaredResultPlots()
     {
+        /*
+         * This method is very similar to LinearResultPlots(), only the function being plotted is really different, along with some axis bounds...
+         * ... see LinearResultPlots for more details
+         */
 
-        //rewrite comments ugh
-        //basic for now, can style later
-        //signal XYs can handle thousands of points while giving me custom spacing
+        //COMPARISON PLOT
         ScottPlot.Plot xSquaredResults = new();
         var exactCurve = xSquaredResults.Add.SignalXY(timeAxis, exactPoints, ScottPlot.Color.FromHex("ff0000"));
         var approxCurve = xSquaredResults.Add.SignalXY(timeAxis, approxPoints, ScottPlot.Color.FromHex("00ff00"));
@@ -335,14 +333,11 @@ public class XSquaredTestEquation : LinearTestEquation
         xSquaredResults.XLabel("t");
         xSquaredResults.YLabel("X");
         xSquaredResults.Title($"xSTE {(thetaValue == 0.5 ? "Trapezium" : eulerType)} FD Scheme {((thetaValue != 0d & thetaValue != 0.5d & thetaValue != 1d) ? "(Theta = " + thetaValue + ")" : "")}in timesteps of {timestepValue}: dX/dt = {((lambdaValue == 1d) ? "" : lambdaValue)}X^2 | X({customStart}) = {(lambdaValue > 0 ? -1d / (lambdaValue * customStart) : 1d / (lambdaValue * customStart))}");
-        //interpolated title displays either Explicit, Implicit, Trapezium, or Theta; if theta, the thetaValue is also given
-
 
         xSquaredResults.ShowLegend();
 
 
-
-        //the error plot is separate for now (multiplot later?)
+        //ERROR PLOT
         ScottPlot.Plot xSquaredErrors = new();
         var relErrorCurve = xSquaredErrors.Add.SignalXY(timeAxis, errorValuesRel, ScottPlot.Color.FromHex("0000ff"));
 
@@ -355,22 +350,24 @@ public class XSquaredTestEquation : LinearTestEquation
         xSquaredErrors.Axes.SetLimitsX(0, timeStopPoint);
         
 
-
+        //SAVE PLOTS
         string finalPath = DetermineSaveLocation();
 
         //decided against prompting for custom image names for now
         string finalResultsPath = Path.Combine(finalPath, "xSquaredResultsPLOT.png");
         string finalErrorPath = Path.Combine(finalPath, "xSquaredErrorPLOT.png");
 
-
         xSquaredResults.SavePng(finalResultsPath, 1280, 720);
         xSquaredErrors.SavePng(finalErrorPath, 1280, 720);
-
     }
 
 
     private static void XSThetaBattle()
     {
+        /*
+         * This is the Error Compare method for this function, see ThetaBattle for more details.
+         */
+ 
         for (int i = 0; i <= 100; i++)
         {
             //errorValuesRel.Clear();
@@ -393,9 +390,7 @@ public class XSquaredTestEquation : LinearTestEquation
         string titlestring = $"Error Comparison in xSTE FD Schemes of differing theta values for equation (in timesteps of {timestepValue}): dX/dt = {((lambdaValue == 1d) ? "" : lambdaValue)}X^2 | X({customStart}) = {(lambdaValue > 0 ? -1d / (lambdaValue * customStart) : 1d / (lambdaValue * customStart))}";
         ThetaBattlePlots(titlestring);
     }
-
-
-
+    
     public XSquaredTestEquation()
 	{
 	}

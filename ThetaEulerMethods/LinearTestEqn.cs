@@ -5,7 +5,7 @@ using System.Net.NetworkInformation;
 using System.Runtime.CompilerServices;
 using ThetaEulerMethods;
 
-public class LinearTestEquation    //new file for organised structure
+public class LinearTestEquation
 {
     /*
      * Here is the class file for the Linear test equation (LTE)
@@ -18,6 +18,7 @@ public class LinearTestEquation    //new file for organised structure
      * I will explain the function of each method here just inside their declarations, and the variables alongside their declaration
      */
 
+    //MAIN VARIABLES
     static string? eulerType;                       //Stores the chosen Euler option (will be used when titling the plots)
     static bool thetaBattle = false;                //Stores whether an Error Compare should be performed
 
@@ -56,6 +57,7 @@ public class LinearTestEquation    //new file for organised structure
 
         Console.WriteLine("Welcome to the Linear Test Equation Space");
 
+        //GET SCHEME TYPE
         eulerType = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
                     .Title("Which scheme should be used?")
