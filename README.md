@@ -6,13 +6,15 @@
 
 &#x20;\* It's based on a simple example from my PDE course, the Euler iteration schemes on the Linear test equation (dX/dt = λx, with X(0) = 1)
 
-&#x20;\* The iterative scheme looks like this: (X\_n+1 - X\_n)/ Δt = θf(X\_n,t\_n) + (1-θ)f(X\_n+1,t\_n+1), where t\_n = nΔt  
+&#x20;\* These schemes are actually a simple version of the Runge-Kutta approximation schemes!
+
+&#x20;\* The iterative scheme looks like this: (X\_n+1 - X\_n)/ Δt = θf(X\_n,t\_n) + (1-θ)f(X\_n+1,t\_n+1), where t\_n = nΔt
 
 &#x20;\* I decided to create this as a fun exercise to have a quick way to simulate whatever conditions I wanted, and to visualise the results.
 
 &#x20;\* I was also able to implement the schemes for a different equation (dX/dt = λX^2, with initial condition such that the true solution would have no constant term)
 
-&#x20;\* Of course these are normally easily solved ODEs, but it's still cool to see these approximate schemes at work... 
+&#x20;\* Of course these are normally easily solved ODEs, but it's still cool to see these approximate schemes at work...
 
 &#x20;\* ...and it means I can collect global error information to compare specific kinds of Euler schemes.
 
@@ -41,6 +43,4 @@
 &#x20;
 
 &#x20;\* I may add a third kind of function in the future, that includes the t variable not yet used in the RHS.
-
-
 

@@ -11,6 +11,7 @@ namespace ThetaEulerMethods
             /*
              * Welcome to my Numerical Method simulation!
              * It's based on a simple example from my PDE course, the Euler iteration schemes on the Linear test equation (dX/dt = λx, with X(0) = 1)
+             * These schemes are actually a simple version of the Runge-Kutta approximation schemes!
              * The iterative scheme looks like this: (X_n+1 - X_n)/ Δt = θf(X_n,t_n) + (1-θ)f(X_n+1,t_n+1), where t_n = nΔt  
              * I decided to create this as a fun exercise to have a quick way to simulate whatever conditions I wanted, and to visualise the results.
              * I was also able to implement the schemes for a different equation (dX/dt = λX^2, with initial condition such that the true solution would have no constant term)
